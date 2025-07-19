@@ -76,7 +76,7 @@
   
   <!-- Mensaje de carga -->
   <text x="400" y="450" text-anchor="middle" fill="#cccccc" font-family="Arial, sans-serif" font-size="18">
-    Inicializando sistema...
+    Loading...
   </text>
   
   <!-- Indicadores de carga -->

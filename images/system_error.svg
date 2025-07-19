@@ -34,43 +34,43 @@
     <path d="M-25,-25 L25,25 M25,-25 L-25,25" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
   </g>
   
-  <!-- Título de error -->
+  <!-- Error title -->
   <text x="400" y="250" text-anchor="middle" fill="#ff3333" font-family="Arial, sans-serif" font-size="32" font-weight="bold">
-    ERROR CRÍTICO DEL SISTEMA
+    CRITICAL SYSTEM ERROR
   </text>
   
-  <!-- Código de error -->
+  <!-- Error code -->
   <text x="400" y="280" text-anchor="middle" fill="#ffaaaa" font-family="Courier, monospace" font-size="16">
     Error Code: 0xC0000005
   </text>
   
-  <!-- Descripción del error -->
+  <!-- Error description -->
   <text x="400" y="320" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="18">
-    Se ha detectado un problema grave en el hardware
+    A serious hardware problem has been detected
   </text>
   
-  <!-- Detalles técnicos -->
+  <!-- Technical details -->
   <g fill="#cccccc" font-family="Courier, monospace" font-size="14">
-    <text x="80" y="370">• Fallo en la inicialización del controlador gráfico</text>
-    <text x="80" y="390">• Memoria insuficiente o corrupta</text>
-    <text x="80" y="410">• Error de comunicación con dispositivos</text>
+    <text x="80" y="370">• Failure initializing graphics driver</text>
+    <text x="80" y="390">• Insufficient or corrupted memory</text>
+    <text x="80" y="410">• Communication error with devices</text>
   </g>
   
-  <!-- Instrucciones -->
+  <!-- Instructions -->
   <text x="400" y="450" text-anchor="middle" fill="#ffff00" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
-    ACCIONES RECOMENDADAS:
+    RECOMMENDED ACTIONS:
   </text>
   
   <g fill="#ffffff" font-family="Arial, sans-serif" font-size="14">
-    <text x="400" y="480" text-anchor="middle">1. Reinicie el sistema</text>
-    <text x="400" y="500" text-anchor="middle">2. Verifique las conexiones de hardware</text>
-    <text x="400" y="520" text-anchor="middle">3. Contacte al servicio técnico si persiste</text>
+    <text x="400" y="480" text-anchor="middle">1. Restart the system</text>
+    <text x="400" y="500" text-anchor="middle">2. Check hardware connections</text>
+    <text x="400" y="520" text-anchor="middle">3. Contact technical support if the issue persists</text>
   </g>
   
-  <!-- Información del sistema -->
+  <!-- System information -->
   <rect x="60" y="540" width="680" height="40" fill="#330000" stroke="#ff3333" stroke-width="1" rx="5"/>
   <g fill="#ffaaaa" font-family="Courier, monospace" font-size="11">
-    <text x="70" y="555">Sistema: Embedded Linux | Timestamp: 2024-03-15 14:32:17</text>
+    <text x="70" y="555">System: Embedded Linux | Timestamp: 2024-03-15 14:32:17</text>
     <text x="70" y="570">Hardware ID: EMB-SYS-2024 | Build: release-2.1.0-stable</text>
   </g>
   

@@ -1,156 +1,175 @@
-DRM Image Display - Visualizador de imágenes para sistemas embebidos
 
-Este programa muestra imágenes directamente en la pantalla usando DRM (Direct Rendering Manager) sin necesidad de un servidor gráfico como X11 o Wayland. Perfecto para sistemas embebidos donde necesitas mostrar una imagen antes de que se inicie el entorno gráfico.
-Características
 
-    ✅ Funciona sin X11/Wayland
-    ✅ Acceso directo al hardware gráfico via DRM
-    ✅ Soporte para múltiples formatos de imagen (JPEG, PNG, BMP, TGA, etc.)
-    ✅ Escalado automático manteniendo proporción
-    ✅ Centrado automático de la imagen
-    ✅ Optimizado para sistemas embebidos
+# DRM Image Display
 
-Requisitos
-Dependencias del sistema
+Image viewer for embedded systems
 
-Ubuntu/Debian:
-bash
+This program displays images directly on the screen using DRM (Direct Rendering Manager) without the need for a graphical server like X11 or Wayland. Perfect for embedded systems where you need to show an image before the graphical environment starts.
 
+## Features
+
+- ✅ Works without X11/Wayland
+- ✅ Direct access to graphics hardware via DRM
+- ✅ Supports multiple image formats (JPEG, PNG, BMP, TGA, etc.)
+- ✅ Automatic scaling while maintaining aspect ratio
+- ✅ Automatic image centering
+- ✅ Optimized for embedded systems
+
+---
+
+## Requirements
+
+### System dependencies
+
+#### Ubuntu/Debian
+```sh
 sudo apt-get install libdrm-dev build-essential wget
+```
 
-CentOS/RHEL/Fedora:
-bash
-
+#### CentOS/RHEL/Fedora
+```sh
 sudo yum install libdrm-devel gcc make wget
-# o en sistemas más nuevos:
-sudo dnf install libdrm-devel gcc make wget
+```
 
-Alpine Linux:
-bash
-
+#### Alpine Linux
+```sh
 sudo apk add libdrm-dev gcc make musl-dev wget
+```
 
-Permisos
+### Permissions
 
-El usuario debe tener acceso al dispositivo DRM:
-bash
+The user must have access to the DRM device:
 
-# Agregar usuario al grupo video
+```sh
+# Add user to video group
 sudo usermod -a -G video $USER
 
-# O ejecutar como root para pruebas
-sudo ./drm_display imagen.jpg
+# Or run as root for testing
+sudo ./drm_display image.jpg
+```
 
-Compilación
-Compilación estándar
-bash
+## Compilation
 
-# Instalar dependencias (ejemplo para Ubuntu)
+### Standard compilation
+```sh
+# Install dependencies (example for Ubuntu)
 make deps-debian
 
-# Compilar
+# Compile
 make
 
-# Instalar (opcional)
+# Install (optional)
 make install
 
-# Convertir imágenes SVG a PNG (requiere rsvg-convert)
+# Convert SVG images to PNG (requires rsvg-convert)
 make svg2png
+```
 
-Para sistemas embebidos
-bash
-
-# Compilación estática
+### For embedded systems
+```sh
+# Static compilation
 make embedded
 
-# Cross-compilación para ARM
+# Cross-compilation for ARM
 make cross-arm
+```
 
-Compilación manual
-
-Si prefieres compilar manualmente:
-bash
-
-# Descargar stb_image.h
+### Manual compilation
+```sh
+# Download stb_image.h
 wget https://raw.githubusercontent.com/nothings/stb/master/stb_image.h
 
-# Compilar
+# Compile
 gcc -Wall -O2 -I/usr/include/drm -I/usr/include/libdrm drm_display.c -o drm_display -ldrm -lm
+```
 
-Uso
-bash
+---
 
-# Uso básico
-./drm_display /ruta/a/imagen.jpg
+## Usage
+```sh
+# Basic usage
+./drm_display /path/to/image.jpg
 
-# Ejemplo con imagen PNG
+# Example with PNG image
 ./drm_display splash.png
 
-# Ejecutar como root si no tienes permisos DRM
+# Run as root if you don't have DRM permissions
 sudo ./drm_display logo.png
+```
 
-Formatos soportados
+### Supported formats
 
-    JPEG (.jpg, .jpeg)
-    PNG (.png)
-    BMP (.bmp)
-    TGA (.tga)
-    PSD (.psd)
-    GIF (.gif) - solo primer frame
-    HDR (.hdr)
-    PIC (.pic)
+- JPEG (.jpg, .jpeg)
+- PNG (.png)
+- BMP (.bmp)
+- TGA (.tga)
+- PSD (.psd)
+- GIF (.gif) - only first frame
+- HDR (.hdr)
+- PIC (.pic)
 
-Funcionamiento
+---
 
-    Detección de hardware: El programa busca y configura automáticamente el dispositivo DRM disponible (/dev/dri/card0)
-    Selección de modo: Elige automáticamente la resolución más alta soportada por tu pantalla
-    Carga de imagen: Usa la biblioteca stb_image para cargar diversos formatos de imagen
-    Escalado inteligente: Redimensiona la imagen manteniendo las proporciones y la centra en pantalla
-    Renderizado directo: Escribe directamente en el framebuffer sin intermediarios
+## How it works
 
-Solución de problemas
-Error: "No se puede abrir /dev/dri/card0"
+1. **Hardware detection:** The program automatically finds and configures the available DRM device (`/dev/dri/card0`).
+2. **Mode selection:** Automatically chooses the highest resolution supported by your display.
+3. **Image loading:** Uses the stb_image library to load various image formats.
+4. **Smart scaling:** Resizes the image while maintaining aspect ratio and centers it on screen.
+5. **Direct rendering:** Writes directly to the framebuffer with no intermediaries.
 
-    Verificar que el dispositivo existe: ls -la /dev/dri/
-    Agregar usuario al grupo video: sudo usermod -a -G video $USER
-    Reiniciar sesión o usar sudo
+---
 
-Error: "rsvg-convert: command not found" al usar make svg2png
+## Troubleshooting
 
-    Instala el paquete librsvg2-tools:
-    sudo dnf install librsvg2-tools   # Fedora/CentOS/RHEL
-    sudo apt-get install librsvg2-bin # Debian/Ubuntu
+### Error: "Cannot open /dev/dri/card0"
 
-Error: "No se encontró un conector conectado"
+- Check that the device exists: `ls -la /dev/dri/`
+- Add user to video group: `sudo usermod -a -G video $USER`
+- Restart session or use sudo
 
-    Verificar que hay una pantalla conectada
-    Comprobar que los drivers gráficos están cargados: lsmod | grep drm
+### Error: "rsvg-convert: command not found" when using `make svg2png` or `make svg169`
 
-Error de compilación: "drm/drm.h: No such file"
+Install the librsvg2-tools package:
+```sh
+sudo dnf install librsvg2-tools   # Fedora/CentOS/RHEL
+sudo apt-get install librsvg2-bin # Debian/Ubuntu
+```
 
-    Instalar libdrm-dev: sudo apt-get install libdrm-dev
-    En algunos sistemas: sudo apt-get install libdrm2-dev
+### Error: "No connected connector found"
 
-La imagen no se ve
+- Check that a display is connected
+- Make sure graphics drivers are loaded: `lsmod | grep drm`
 
-    Verificar permisos del archivo de imagen
-    Comprobar que el formato es compatible
-    Probar con sudo para descartar problemas de permisos
+### Compilation error: "drm/drm.h: No such file"
 
-Uso en sistemas embebidos
-Boot splash
+- Install libdrm-dev: `sudo apt-get install libdrm-dev`
+- On some systems: `sudo apt-get install libdrm2-dev`
 
-Para mostrar una imagen durante el arranque, puedes agregar el programa al initramfs o llamarlo desde un script de inicio temprano:
-bash
+### Image not displayed
 
-# En /etc/init.d/ o systemd service
+- Check image file permissions
+- Make sure the format is supported
+- Try with sudo to rule out permission issues
+
+---
+
+## Usage in embedded systems
+
+### Boot splash
+
+To show an image during boot, you can add the program to the initramfs or call it from an early startup script:
+
+```sh
+# In /etc/init.d/ or systemd service
 /usr/local/bin/drm_display /boot/splash.png &
+```
 
-Integración con systemd
+### Systemd integration
 
-Crear un servicio para mostrar splash en boot:
-ini
+Create a service to show splash at boot:
 
+```ini
 [Unit]
 Description=Boot Splash
 DefaultDependencies=false
@@ -164,25 +183,32 @@ StandardOutput=journal
 
 [Install]
 WantedBy=multi-user.target
+```
 
-Limitaciones
+---
 
-    Solo soporta un monitor (usa el primer conector detectado)
-    Formato de pixel fijo ARGB8888
-    No tiene soporte para animaciones
-    Requiere permisos de acceso a dispositivos DRM
+## Limitations
 
-Desarrollo
+- Only supports one monitor (uses the first detected connector)
+- Fixed pixel format ARGB8888
+- No animation support
+- Requires permissions to access DRM devices
 
-El código está diseñado para ser simple y modificable. Las principales funciones:
+---
 
-    find_drm_device(): Detecta y configura el hardware DRM
-    create_framebuffer(): Crea el buffer de renderizado
-    display_image(): Carga, escala y muestra la imagen
-    scale_and_center_image(): Algoritmo de escalado con preservación de aspecto
+## Development
 
-Para modificar el comportamiento, edita estas funciones según tus necesidades específicas.
+The code is designed to be simple and modifiable. Main functions:
 
-Licencia
+- `find_drm_device()`: Detects and configures DRM hardware
+- `create_framebuffer()`: Creates the render buffer
+- `display_image()`: Loads, scales, and displays the image
+- `scale_and_center_image()`: Aspect-ratio-preserving scaling algorithm
 
-Este proyecto está licenciado bajo los términos de la licencia MIT. Consulta el archivo LICENSE para más detalles.
+To modify the behavior, edit these functions as needed.
+
+---
+
+## License
+
+This project is licensed under the terms of the MIT license. See the LICENSE file for details.

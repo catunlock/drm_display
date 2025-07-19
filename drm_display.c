@@ -12,7 +12,8 @@
 #include <xf86drmMode.h>
 #include <drm_fourcc.h>
 
-// Para compatibilidad con sistemas más antiguos
+
+// For compatibility with older systems
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 0
 #endif
@@ -40,24 +41,26 @@ static int find_drm_device(struct drm_device *dev) {
     drmModeEncoder *encoder = NULL;
     int i, area;
 
-    // Intentar abrir el dispositivo DRM
+
+    // Try to open the DRM device
     dev->fd = open("/dev/dri/card1", O_RDWR | O_CLOEXEC);
     if (dev->fd < 0) {
-        fprintf(stderr, "Error: No se puede abrir /dev/dri/card1: %s\n", strerror(errno));
+        fprintf(stderr, "Error: Cannot open /dev/dri/card1: %s\n", strerror(errno));
         return -1;
     }
 
-    // Obtener recursos DRM
+    // Get DRM resources
     resources = drmModeGetResources(dev->fd);
     if (!resources) {
-        fprintf(stderr, "Error: No se pueden obtener recursos DRM\n");
+        fprintf(stderr, "Error: Cannot get DRM resources\n");
         close(dev->fd);
         return -1;
     }
 
     dev->resources = resources;
 
-    // Buscar un conector conectado
+
+    // Look for a connected connector
     for (i = 0; i < resources->count_connectors; i++) {
         connector = drmModeGetConnector(dev->fd, resources->connectors[i]);
         if (connector->connection == DRM_MODE_CONNECTED && connector->count_modes > 0) {
@@ -68,7 +71,7 @@ static int find_drm_device(struct drm_device *dev) {
     }
 
     if (!connector) {
-        fprintf(stderr, "Error: No se encontró un conector conectado\n");
+        fprintf(stderr, "Error: No connected connector found\n");
         drmModeFreeResources(resources);
         close(dev->fd);
         return -1;
@@ -76,7 +79,8 @@ static int find_drm_device(struct drm_device *dev) {
 
     dev->connector = connector;
 
-    // Seleccionar el mejor modo (mayor área)
+
+    // Select the best mode (largest area)
     area = 0;
     for (i = 0; i < connector->count_modes; i++) {
         drmModeModeInfo *current_mode = &connector->modes[i];
@@ -86,7 +90,7 @@ static int find_drm_device(struct drm_device *dev) {
         }
     }
 
-    // Encontrar encoder
+    // Find encoder
     if (connector->encoder_id) {
         encoder = drmModeGetEncoder(dev->fd, connector->encoder_id);
     }
@@ -103,7 +107,7 @@ static int find_drm_device(struct drm_device *dev) {
     }
 
     if (!encoder) {
-        fprintf(stderr, "Error: No se encontró encoder\n");
+        fprintf(stderr, "Error: No encoder found\n");
         drmModeFreeConnector(connector);
         drmModeFreeResources(resources);
         close(dev->fd);
@@ -112,12 +116,13 @@ static int find_drm_device(struct drm_device *dev) {
 
     dev->encoder = encoder;
 
-    // Obtener CRTC
+
+    // Get CRTC
     if (encoder->crtc_id) {
         dev->crtc = drmModeGetCrtc(dev->fd, encoder->crtc_id);
     }
 
-    printf("Modo seleccionado: %dx%d@%dHz\n", 
+    printf("Selected mode: %dx%d@%dHz\n", 
            dev->mode.hdisplay, dev->mode.vdisplay, dev->mode.vrefresh);
 
     return 0;
@@ -128,14 +133,15 @@ static int create_framebuffer(struct drm_device *dev) {
     struct drm_mode_map_dumb map_req = {0};
     int ret;
 
-    // Crear buffer dumb
+
+    // Create dumb buffer
     create_req.width = dev->mode.hdisplay;
     create_req.height = dev->mode.vdisplay;
     create_req.bpp = 32; // RGBA8888
     
     ret = drmIoctl(dev->fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_req);
     if (ret) {
-        fprintf(stderr, "Error: No se puede crear buffer dumb: %s\n", strerror(errno));
+        fprintf(stderr, "Error: Cannot create dumb buffer: %s\n", strerror(errno));
         return -1;
     }
 
@@ -143,30 +149,32 @@ static int create_framebuffer(struct drm_device *dev) {
     dev->pitch = create_req.pitch;
     dev->size = create_req.size;
 
-    // Crear framebuffer
+
+    // Create framebuffer
     ret = drmModeAddFB(dev->fd, dev->mode.hdisplay, dev->mode.vdisplay, 
                        24, 32, dev->pitch, dev->handle, &dev->fb_id);
     if (ret) {
-        fprintf(stderr, "Error: No se puede crear framebuffer: %s\n", strerror(errno));
+        fprintf(stderr, "Error: Cannot create framebuffer: %s\n", strerror(errno));
         return -1;
     }
 
-    // Mapear buffer en memoria
+
+    // Map buffer to memory
     map_req.handle = dev->handle;
     ret = drmIoctl(dev->fd, DRM_IOCTL_MODE_MAP_DUMB, &map_req);
     if (ret) {
-        fprintf(stderr, "Error: No se puede mapear buffer: %s\n", strerror(errno));
+        fprintf(stderr, "Error: Cannot map buffer: %s\n", strerror(errno));
         return -1;
     }
 
     dev->map = mmap(0, dev->size, PROT_READ | PROT_WRITE, MAP_SHARED, 
                     dev->fd, map_req.offset);
     if (dev->map == MAP_FAILED) {
-        fprintf(stderr, "Error: mmap falló: %s\n", strerror(errno));
+        fprintf(stderr, "Error: mmap failed: %s\n", strerror(errno));
         return -1;
     }
 
-    // Limpiar buffer (negro)
+    // Clear buffer (black)
     memset(dev->map, 0, dev->size);
 
     return 0;
@@ -174,7 +182,7 @@ static int create_framebuffer(struct drm_device *dev) {
 
 static void scale_and_center_image(unsigned char *image_data, int img_width, int img_height,
                                   uint32_t *fb_data, int fb_width, int fb_height) {
-    // Calcular escala manteniendo aspecto
+    // Calculate scale while maintaining aspect ratio
     float scale_x = (float)fb_width / img_width;
     float scale_y = (float)fb_height / img_height;
     float scale = (scale_x < scale_y) ? scale_x : scale_y;
@@ -182,30 +190,30 @@ static void scale_and_center_image(unsigned char *image_data, int img_width, int
     int scaled_width = (int)(img_width * scale);
     int scaled_height = (int)(img_height * scale);
     
-    // Centrar imagen
+    // Center image
     int offset_x = (fb_width - scaled_width) / 2;
     int offset_y = (fb_height - scaled_height) / 2;
     
-    printf("Escalando imagen de %dx%d a %dx%d, centrada en %d,%d\n", 
+    printf("Scaling image from %dx%d to %dx%d, centered at %d,%d\n", 
            img_width, img_height, scaled_width, scaled_height, offset_x, offset_y);
     
     for (int y = 0; y < scaled_height; y++) {
         for (int x = 0; x < scaled_width; x++) {
-            // Mapeo desde coordenadas escaladas a coordenadas originales
+            // Map from scaled coordinates to original image coordinates
             int src_x = (int)(x / scale);
             int src_y = (int)(y / scale);
             
-            // Asegurar que no salgamos de los límites de la imagen original
+            // Make sure we don't go out of bounds of the original image
             if (src_x >= img_width) src_x = img_width - 1;
             if (src_y >= img_height) src_y = img_height - 1;
             
-            // Obtener pixel de la imagen original (RGB)
+            // Get pixel from original image (RGB)
             int src_idx = (src_y * img_width + src_x) * 3;
             unsigned char r = image_data[src_idx];
             unsigned char g = image_data[src_idx + 1];
             unsigned char b = image_data[src_idx + 2];
             
-            // Escribir pixel en framebuffer (ARGB8888)
+            // Write pixel to framebuffer (ARGB8888)
             int dst_x = offset_x + x;
             int dst_y = offset_y + y;
             if (dst_x < fb_width && dst_y < fb_height) {
@@ -220,30 +228,30 @@ static int display_image(struct drm_device *dev, const char *image_path) {
     int img_width, img_height, channels;
     unsigned char *image_data;
     
-    // Cargar imagen
+    // Load image
     image_data = stbi_load(image_path, &img_width, &img_height, &channels, 3);
     if (!image_data) {
-        fprintf(stderr, "Error: No se puede cargar imagen %s\n", image_path);
+        fprintf(stderr, "Error: Cannot load image %s\n", image_path);
         return -1;
     }
     
-    printf("Imagen cargada: %dx%d, %d canales\n", img_width, img_height, channels);
+    printf("Image loaded: %dx%d, %d channels\n", img_width, img_height, channels);
     
-    // Limpiar framebuffer
+    // Clear framebuffer
     memset(dev->map, 0, dev->size);
     
-    // Escalar y copiar imagen al framebuffer
+    // Scale and copy image to framebuffer
     uint32_t *fb_data = (uint32_t *)dev->map;
     scale_and_center_image(image_data, img_width, img_height, 
                           fb_data, dev->mode.hdisplay, dev->mode.vdisplay);
     
     stbi_image_free(image_data);
     
-    // Establecer modo y mostrar framebuffer
+    // Set mode and display framebuffer
     int ret = drmModeSetCrtc(dev->fd, dev->encoder->crtc_id, dev->fb_id, 
                             0, 0, &dev->connector->connector_id, 1, &dev->mode);
     if (ret) {
-        fprintf(stderr, "Error: No se puede establecer CRTC: %s\n", strerror(errno));
+        fprintf(stderr, "Error: Cannot set CRTC: %s\n", strerror(errno));
         return -1;
     }
     
@@ -283,34 +291,34 @@ int main(int argc, char *argv[]) {
     struct drm_device dev = {0};
     
     if (argc != 2) {
-        fprintf(stderr, "Uso: %s <ruta_imagen>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <image_path>\n", argv[0]);
         return 1;
     }
     
-    printf("Iniciando visualizador DRM...\n");
+    printf("Starting DRM image viewer...\n");
     
-    // Inicializar dispositivo DRM
+    // Initialize DRM device
     if (find_drm_device(&dev) != 0) {
         return 1;
     }
     
-    // Crear framebuffer
+    // Create framebuffer
     if (create_framebuffer(&dev) != 0) {
         cleanup_drm(&dev);
         return 1;
     }
     
-    // Mostrar imagen
+    // Display image
     if (display_image(&dev, argv[1]) != 0) {
         cleanup_drm(&dev);
         return 1;
     }
     
-    printf("Imagen mostrada. Presiona Enter para salir...\n");
+    printf("Image displayed. Press Enter to exit...\n");
     getchar();
     
     cleanup_drm(&dev);
-    printf("Limpieza completada.\n");
+    printf("Cleanup completed.\n");
     
     return 0;
 }
