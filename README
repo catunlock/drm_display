@@ -1,0 +1,188 @@
+DRM Image Display - Visualizador de imágenes para sistemas embebidos
+
+Este programa muestra imágenes directamente en la pantalla usando DRM (Direct Rendering Manager) sin necesidad de un servidor gráfico como X11 o Wayland. Perfecto para sistemas embebidos donde necesitas mostrar una imagen antes de que se inicie el entorno gráfico.
+Características
+
+    ✅ Funciona sin X11/Wayland
+    ✅ Acceso directo al hardware gráfico via DRM
+    ✅ Soporte para múltiples formatos de imagen (JPEG, PNG, BMP, TGA, etc.)
+    ✅ Escalado automático manteniendo proporción
+    ✅ Centrado automático de la imagen
+    ✅ Optimizado para sistemas embebidos
+
+Requisitos
+Dependencias del sistema
+
+Ubuntu/Debian:
+bash
+
+sudo apt-get install libdrm-dev build-essential wget
+
+CentOS/RHEL/Fedora:
+bash
+
+sudo yum install libdrm-devel gcc make wget
+# o en sistemas más nuevos:
+sudo dnf install libdrm-devel gcc make wget
+
+Alpine Linux:
+bash
+
+sudo apk add libdrm-dev gcc make musl-dev wget
+
+Permisos
+
+El usuario debe tener acceso al dispositivo DRM:
+bash
+
+# Agregar usuario al grupo video
+sudo usermod -a -G video $USER
+
+# O ejecutar como root para pruebas
+sudo ./drm_display imagen.jpg
+
+Compilación
+Compilación estándar
+bash
+
+# Instalar dependencias (ejemplo para Ubuntu)
+make deps-debian
+
+# Compilar
+make
+
+# Instalar (opcional)
+make install
+
+# Convertir imágenes SVG a PNG (requiere rsvg-convert)
+make svg2png
+
+Para sistemas embebidos
+bash
+
+# Compilación estática
+make embedded
+
+# Cross-compilación para ARM
+make cross-arm
+
+Compilación manual
+
+Si prefieres compilar manualmente:
+bash
+
+# Descargar stb_image.h
+wget https://raw.githubusercontent.com/nothings/stb/master/stb_image.h
+
+# Compilar
+gcc -Wall -O2 -I/usr/include/drm -I/usr/include/libdrm drm_display.c -o drm_display -ldrm -lm
+
+Uso
+bash
+
+# Uso básico
+./drm_display /ruta/a/imagen.jpg
+
+# Ejemplo con imagen PNG
+./drm_display splash.png
+
+# Ejecutar como root si no tienes permisos DRM
+sudo ./drm_display logo.png
+
+Formatos soportados
+
+    JPEG (.jpg, .jpeg)
+    PNG (.png)
+    BMP (.bmp)
+    TGA (.tga)
+    PSD (.psd)
+    GIF (.gif) - solo primer frame
+    HDR (.hdr)
+    PIC (.pic)
+
+Funcionamiento
+
+    Detección de hardware: El programa busca y configura automáticamente el dispositivo DRM disponible (/dev/dri/card0)
+    Selección de modo: Elige automáticamente la resolución más alta soportada por tu pantalla
+    Carga de imagen: Usa la biblioteca stb_image para cargar diversos formatos de imagen
+    Escalado inteligente: Redimensiona la imagen manteniendo las proporciones y la centra en pantalla
+    Renderizado directo: Escribe directamente en el framebuffer sin intermediarios
+
+Solución de problemas
+Error: "No se puede abrir /dev/dri/card0"
+
+    Verificar que el dispositivo existe: ls -la /dev/dri/
+    Agregar usuario al grupo video: sudo usermod -a -G video $USER
+    Reiniciar sesión o usar sudo
+
+Error: "rsvg-convert: command not found" al usar make svg2png
+
+    Instala el paquete librsvg2-tools:
+    sudo dnf install librsvg2-tools   # Fedora/CentOS/RHEL
+    sudo apt-get install librsvg2-bin # Debian/Ubuntu
+
+Error: "No se encontró un conector conectado"
+
+    Verificar que hay una pantalla conectada
+    Comprobar que los drivers gráficos están cargados: lsmod | grep drm
+
+Error de compilación: "drm/drm.h: No such file"
+
+    Instalar libdrm-dev: sudo apt-get install libdrm-dev
+    En algunos sistemas: sudo apt-get install libdrm2-dev
+
+La imagen no se ve
+
+    Verificar permisos del archivo de imagen
+    Comprobar que el formato es compatible
+    Probar con sudo para descartar problemas de permisos
+
+Uso en sistemas embebidos
+Boot splash
+
+Para mostrar una imagen durante el arranque, puedes agregar el programa al initramfs o llamarlo desde un script de inicio temprano:
+bash
+
+# En /etc/init.d/ o systemd service
+/usr/local/bin/drm_display /boot/splash.png &
+
+Integración con systemd
+
+Crear un servicio para mostrar splash en boot:
+ini
+
+[Unit]
+Description=Boot Splash
+DefaultDependencies=false
+After=systemd-udev-settle.service
+Before=display-manager.service
+
+[Service]
+ExecStart=/usr/local/bin/drm_display /boot/splash.png
+Type=forking
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
+
+Limitaciones
+
+    Solo soporta un monitor (usa el primer conector detectado)
+    Formato de pixel fijo ARGB8888
+    No tiene soporte para animaciones
+    Requiere permisos de acceso a dispositivos DRM
+
+Desarrollo
+
+El código está diseñado para ser simple y modificable. Las principales funciones:
+
+    find_drm_device(): Detecta y configura el hardware DRM
+    create_framebuffer(): Crea el buffer de renderizado
+    display_image(): Carga, escala y muestra la imagen
+    scale_and_center_image(): Algoritmo de escalado con preservación de aspecto
+
+Para modificar el comportamiento, edita estas funciones según tus necesidades específicas.
+
+Licencia
+
+Este proyecto está licenciado bajo los términos de la licencia MIT. Consulta el archivo LICENSE para más detalles.

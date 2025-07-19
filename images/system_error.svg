@@ -1,0 +1,81 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="errorBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d1b1b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a0000;stop-opacity:1" />
+    </linearGradient>
+    <filter id="redGlow">
+      <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Fondo rojo oscuro -->
+  <rect width="800" height="600" fill="url(#errorBg)"/>
+  
+  <!-- Patrón de advertencia -->
+  <defs>
+    <pattern id="warning" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M30,10 L50,40 L10,40 Z" fill="#ff0000" opacity="0.1"/>
+      <text x="30" y="35" text-anchor="middle" fill="#ffffff" font-size="16" opacity="0.1">!</text>
+    </pattern>
+  </defs>
+  <rect width="800" height="600" fill="url(#warning)"/>
+  
+  <!-- Marco de error -->
+  <rect x="40" y="40" width="720" height="520" rx="10" fill="none" stroke="#ff3333" stroke-width="3"/>
+  
+  <!-- Icono de error grande -->
+  <g transform="translate(400, 160)">
+    <circle cx="0" cy="0" r="50" fill="#ff0000" filter="url(#redGlow)"/>
+    <path d="M-25,-25 L25,25 M25,-25 L-25,25" stroke="#ffffff" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Título de error -->
+  <text x="400" y="250" text-anchor="middle" fill="#ff3333" font-family="Arial, sans-serif" font-size="32" font-weight="bold">
+    ERROR CRÍTICO DEL SISTEMA
+  </text>
+  
+  <!-- Código de error -->
+  <text x="400" y="280" text-anchor="middle" fill="#ffaaaa" font-family="Courier, monospace" font-size="16">
+    Error Code: 0xC0000005
+  </text>
+  
+  <!-- Descripción del error -->
+  <text x="400" y="320" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="18">
+    Se ha detectado un problema grave en el hardware
+  </text>
+  
+  <!-- Detalles técnicos -->
+  <g fill="#cccccc" font-family="Courier, monospace" font-size="14">
+    <text x="80" y="370">• Fallo en la inicialización del controlador gráfico</text>
+    <text x="80" y="390">• Memoria insuficiente o corrupta</text>
+    <text x="80" y="410">• Error de comunicación con dispositivos</text>
+  </g>
+  
+  <!-- Instrucciones -->
+  <text x="400" y="450" text-anchor="middle" fill="#ffff00" font-family="Arial, sans-serif" font-size="16" font-weight="bold">
+    ACCIONES RECOMENDADAS:
+  </text>
+  
+  <g fill="#ffffff" font-family="Arial, sans-serif" font-size="14">
+    <text x="400" y="480" text-anchor="middle">1. Reinicie el sistema</text>
+    <text x="400" y="500" text-anchor="middle">2. Verifique las conexiones de hardware</text>
+    <text x="400" y="520" text-anchor="middle">3. Contacte al servicio técnico si persiste</text>
+  </g>
+  
+  <!-- Información del sistema -->
+  <rect x="60" y="540" width="680" height="40" fill="#330000" stroke="#ff3333" stroke-width="1" rx="5"/>
+  <g fill="#ffaaaa" font-family="Courier, monospace" font-size="11">
+    <text x="70" y="555">Sistema: Embedded Linux | Timestamp: 2024-03-15 14:32:17</text>
+    <text x="70" y="570">Hardware ID: EMB-SYS-2024 | Build: release-2.1.0-stable</text>
+  </g>
+  
+  <!-- Indicador de error parpadeante -->
+  <circle cx="760" cy="80" r="8" fill="#ff0000">
+    <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/>
+  </circle>
+</svg>

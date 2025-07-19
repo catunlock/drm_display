@@ -1,0 +1,316 @@
+#define _POSIX_C_SOURCE 200809L
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/mman.h>
+#include <stdint.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <drm_fourcc.h>
+
+// Para compatibilidad con sistemas más antiguos
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+struct drm_device {
+    int fd;
+    drmModeRes *resources;
+    drmModeConnector *connector;
+    drmModeEncoder *encoder;
+    drmModeCrtc *crtc;
+    drmModeModeInfo mode;
+    uint32_t fb_id;
+    void *map;
+    size_t size;
+    uint32_t handle;
+    uint32_t pitch;
+};
+
+static int find_drm_device(struct drm_device *dev) {
+    drmModeRes *resources;
+    drmModeConnector *connector = NULL;
+    drmModeEncoder *encoder = NULL;
+    int i, area;
+
+    // Intentar abrir el dispositivo DRM
+    dev->fd = open("/dev/dri/card1", O_RDWR | O_CLOEXEC);
+    if (dev->fd < 0) {
+        fprintf(stderr, "Error: No se puede abrir /dev/dri/card1: %s\n", strerror(errno));
+        return -1;
+    }
+
+    // Obtener recursos DRM
+    resources = drmModeGetResources(dev->fd);
+    if (!resources) {
+        fprintf(stderr, "Error: No se pueden obtener recursos DRM\n");
+        close(dev->fd);
+        return -1;
+    }
+
+    dev->resources = resources;
+
+    // Buscar un conector conectado
+    for (i = 0; i < resources->count_connectors; i++) {
+        connector = drmModeGetConnector(dev->fd, resources->connectors[i]);
+        if (connector->connection == DRM_MODE_CONNECTED && connector->count_modes > 0) {
+            break;
+        }
+        drmModeFreeConnector(connector);
+        connector = NULL;
+    }
+
+    if (!connector) {
+        fprintf(stderr, "Error: No se encontró un conector conectado\n");
+        drmModeFreeResources(resources);
+        close(dev->fd);
+        return -1;
+    }
+
+    dev->connector = connector;
+
+    // Seleccionar el mejor modo (mayor área)
+    area = 0;
+    for (i = 0; i < connector->count_modes; i++) {
+        drmModeModeInfo *current_mode = &connector->modes[i];
+        if (current_mode->hdisplay * current_mode->vdisplay > area) {
+            dev->mode = *current_mode;
+            area = current_mode->hdisplay * current_mode->vdisplay;
+        }
+    }
+
+    // Encontrar encoder
+    if (connector->encoder_id) {
+        encoder = drmModeGetEncoder(dev->fd, connector->encoder_id);
+    }
+    
+    if (!encoder) {
+        for (i = 0; i < resources->count_encoders; i++) {
+            encoder = drmModeGetEncoder(dev->fd, resources->encoders[i]);
+            if (encoder->encoder_id == connector->encoder_id) {
+                break;
+            }
+            drmModeFreeEncoder(encoder);
+            encoder = NULL;
+        }
+    }
+
+    if (!encoder) {
+        fprintf(stderr, "Error: No se encontró encoder\n");
+        drmModeFreeConnector(connector);
+        drmModeFreeResources(resources);
+        close(dev->fd);
+        return -1;
+    }
+
+    dev->encoder = encoder;
+
+    // Obtener CRTC
+    if (encoder->crtc_id) {
+        dev->crtc = drmModeGetCrtc(dev->fd, encoder->crtc_id);
+    }
+
+    printf("Modo seleccionado: %dx%d@%dHz\n", 
+           dev->mode.hdisplay, dev->mode.vdisplay, dev->mode.vrefresh);
+
+    return 0;
+}
+
+static int create_framebuffer(struct drm_device *dev) {
+    struct drm_mode_create_dumb create_req = {0};
+    struct drm_mode_map_dumb map_req = {0};
+    int ret;
+
+    // Crear buffer dumb
+    create_req.width = dev->mode.hdisplay;
+    create_req.height = dev->mode.vdisplay;
+    create_req.bpp = 32; // RGBA8888
+    
+    ret = drmIoctl(dev->fd, DRM_IOCTL_MODE_CREATE_DUMB, &create_req);
+    if (ret) {
+        fprintf(stderr, "Error: No se puede crear buffer dumb: %s\n", strerror(errno));
+        return -1;
+    }
+
+    dev->handle = create_req.handle;
+    dev->pitch = create_req.pitch;
+    dev->size = create_req.size;
+
+    // Crear framebuffer
+    ret = drmModeAddFB(dev->fd, dev->mode.hdisplay, dev->mode.vdisplay, 
+                       24, 32, dev->pitch, dev->handle, &dev->fb_id);
+    if (ret) {
+        fprintf(stderr, "Error: No se puede crear framebuffer: %s\n", strerror(errno));
+        return -1;
+    }
+
+    // Mapear buffer en memoria
+    map_req.handle = dev->handle;
+    ret = drmIoctl(dev->fd, DRM_IOCTL_MODE_MAP_DUMB, &map_req);
+    if (ret) {
+        fprintf(stderr, "Error: No se puede mapear buffer: %s\n", strerror(errno));
+        return -1;
+    }
+
+    dev->map = mmap(0, dev->size, PROT_READ | PROT_WRITE, MAP_SHARED, 
+                    dev->fd, map_req.offset);
+    if (dev->map == MAP_FAILED) {
+        fprintf(stderr, "Error: mmap falló: %s\n", strerror(errno));
+        return -1;
+    }
+
+    // Limpiar buffer (negro)
+    memset(dev->map, 0, dev->size);
+
+    return 0;
+}
+
+static void scale_and_center_image(unsigned char *image_data, int img_width, int img_height,
+                                  uint32_t *fb_data, int fb_width, int fb_height) {
+    // Calcular escala manteniendo aspecto
+    float scale_x = (float)fb_width / img_width;
+    float scale_y = (float)fb_height / img_height;
+    float scale = (scale_x < scale_y) ? scale_x : scale_y;
+    
+    int scaled_width = (int)(img_width * scale);
+    int scaled_height = (int)(img_height * scale);
+    
+    // Centrar imagen
+    int offset_x = (fb_width - scaled_width) / 2;
+    int offset_y = (fb_height - scaled_height) / 2;
+    
+    printf("Escalando imagen de %dx%d a %dx%d, centrada en %d,%d\n", 
+           img_width, img_height, scaled_width, scaled_height, offset_x, offset_y);
+    
+    for (int y = 0; y < scaled_height; y++) {
+        for (int x = 0; x < scaled_width; x++) {
+            // Mapeo desde coordenadas escaladas a coordenadas originales
+            int src_x = (int)(x / scale);
+            int src_y = (int)(y / scale);
+            
+            // Asegurar que no salgamos de los límites de la imagen original
+            if (src_x >= img_width) src_x = img_width - 1;
+            if (src_y >= img_height) src_y = img_height - 1;
+            
+            // Obtener pixel de la imagen original (RGB)
+            int src_idx = (src_y * img_width + src_x) * 3;
+            unsigned char r = image_data[src_idx];
+            unsigned char g = image_data[src_idx + 1];
+            unsigned char b = image_data[src_idx + 2];
+            
+            // Escribir pixel en framebuffer (ARGB8888)
+            int dst_x = offset_x + x;
+            int dst_y = offset_y + y;
+            if (dst_x < fb_width && dst_y < fb_height) {
+                uint32_t pixel = (0xFF << 24) | (r << 16) | (g << 8) | b;
+                fb_data[dst_y * fb_width + dst_x] = pixel;
+            }
+        }
+    }
+}
+
+static int display_image(struct drm_device *dev, const char *image_path) {
+    int img_width, img_height, channels;
+    unsigned char *image_data;
+    
+    // Cargar imagen
+    image_data = stbi_load(image_path, &img_width, &img_height, &channels, 3);
+    if (!image_data) {
+        fprintf(stderr, "Error: No se puede cargar imagen %s\n", image_path);
+        return -1;
+    }
+    
+    printf("Imagen cargada: %dx%d, %d canales\n", img_width, img_height, channels);
+    
+    // Limpiar framebuffer
+    memset(dev->map, 0, dev->size);
+    
+    // Escalar y copiar imagen al framebuffer
+    uint32_t *fb_data = (uint32_t *)dev->map;
+    scale_and_center_image(image_data, img_width, img_height, 
+                          fb_data, dev->mode.hdisplay, dev->mode.vdisplay);
+    
+    stbi_image_free(image_data);
+    
+    // Establecer modo y mostrar framebuffer
+    int ret = drmModeSetCrtc(dev->fd, dev->encoder->crtc_id, dev->fb_id, 
+                            0, 0, &dev->connector->connector_id, 1, &dev->mode);
+    if (ret) {
+        fprintf(stderr, "Error: No se puede establecer CRTC: %s\n", strerror(errno));
+        return -1;
+    }
+    
+    return 0;
+}
+
+static void cleanup_drm(struct drm_device *dev) {
+    if (dev->map && dev->map != MAP_FAILED) {
+        munmap(dev->map, dev->size);
+    }
+    if (dev->fb_id) {
+        drmModeRmFB(dev->fd, dev->fb_id);
+    }
+    if (dev->handle) {
+        struct drm_mode_destroy_dumb destroy_req = {0};
+        destroy_req.handle = dev->handle;
+        drmIoctl(dev->fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_req);
+    }
+    if (dev->crtc) {
+        drmModeFreeCrtc(dev->crtc);
+    }
+    if (dev->encoder) {
+        drmModeFreeEncoder(dev->encoder);
+    }
+    if (dev->connector) {
+        drmModeFreeConnector(dev->connector);
+    }
+    if (dev->resources) {
+        drmModeFreeResources(dev->resources);
+    }
+    if (dev->fd >= 0) {
+        close(dev->fd);
+    }
+}
+
+int main(int argc, char *argv[]) {
+    struct drm_device dev = {0};
+    
+    if (argc != 2) {
+        fprintf(stderr, "Uso: %s <ruta_imagen>\n", argv[0]);
+        return 1;
+    }
+    
+    printf("Iniciando visualizador DRM...\n");
+    
+    // Inicializar dispositivo DRM
+    if (find_drm_device(&dev) != 0) {
+        return 1;
+    }
+    
+    // Crear framebuffer
+    if (create_framebuffer(&dev) != 0) {
+        cleanup_drm(&dev);
+        return 1;
+    }
+    
+    // Mostrar imagen
+    if (display_image(&dev, argv[1]) != 0) {
+        cleanup_drm(&dev);
+        return 1;
+    }
+    
+    printf("Imagen mostrada. Presiona Enter para salir...\n");
+    getchar();
+    
+    cleanup_drm(&dev);
+    printf("Limpieza completada.\n");
+    
+    return 0;
+}

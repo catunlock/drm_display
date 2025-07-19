@@ -1,0 +1,104 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgRadial" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" style="stop-color:#0f0f23;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+    </radialGradient>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ff88;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00cc66;stop-opacity:1" />
+    </linearGradient>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Fondo con gradiente radial -->
+  <rect width="800" height="600" fill="url(#bgRadial)"/>
+  
+  <!-- Estrellas de fondo -->
+  <g fill="#ffffff" opacity="0.3">
+    <circle cx="100" cy="80" r="1"/>
+    <circle cx="200" cy="120" r="1.5"/>
+    <circle cx="350" cy="100" r="1"/>
+    <circle cx="500" cy="90" r="1"/>
+    <circle cx="650" cy="110" r="1.5"/>
+    <circle cx="700" cy="150" r="1"/>
+    <circle cx="150" cy="200" r="1"/>
+    <circle cx="750" cy="250" r="1.5"/>
+    <circle cx="50" cy="300" r="1"/>
+    <circle cx="680" cy="320" r="1"/>
+    <circle cx="120" cy="450" r="1.5"/>
+    <circle cx="600" cy="480" r="1"/>
+    <circle cx="300" cy="520" r="1"/>
+    <circle cx="750" cy="500" r="1.5"/>
+  </g>
+  
+  <!-- Logo central -->
+  <g transform="translate(400, 220)">
+    <!-- Círculo exterior -->
+    <circle cx="0" cy="0" r="80" fill="none" stroke="url(#logoGradient)" stroke-width="4" filter="url(#softGlow)"/>
+    
+    <!-- Hexágono interior -->
+    <path d="M-40,0 L-20,-35 L20,-35 L40,0 L20,35 L-20,35 Z" fill="url(#logoGradient)" opacity="0.8" filter="url(#softGlow)"/>
+    
+    <!-- Símbolo de power/chip -->
+    <g stroke="#ffffff" stroke-width="3" fill="none">
+      <circle cx="0" cy="0" r="15"/>
+      <path d="M0,-15 L0,15"/>
+      <path d="M-15,0 L15,0"/>
+    </g>
+    
+    <!-- Puntos de conexión -->
+    <g fill="#00ff88">
+      <circle cx="0" cy="-25" r="3"/>
+      <circle cx="22" cy="-12" r="3"/>
+      <circle cx="22" cy="12" r="3"/>
+      <circle cx="0" cy="25" r="3"/>
+      <circle cx="-22" cy="12" r="3"/>
+      <circle cx="-22" cy="-12" r="3"/>
+    </g>
+  </g>
+  
+  <!-- Nombre del sistema -->
+  <text x="400" y="350" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="36" font-weight="300" filter="url(#softGlow)">
+    EMBEDDED SYSTEM
+  </text>
+  
+  <!-- Versión -->
+  <text x="400" y="380" text-anchor="middle" fill="#00ff88" font-family="Arial, sans-serif" font-size="16" font-weight="400">
+    v2.1.0
+  </text>
+  
+  <!-- Mensaje de carga -->
+  <text x="400" y="450" text-anchor="middle" fill="#cccccc" font-family="Arial, sans-serif" font-size="18">
+    Inicializando sistema...
+  </text>
+  
+  <!-- Indicadores de carga -->
+  <g transform="translate(400, 480)">
+    <circle cx="-30" cy="0" r="4" fill="#00ff88">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" begin="0s"/>
+    </circle>
+    <circle cx="-10" cy="0" r="4" fill="#00ff88">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" begin="0.3s"/>
+    </circle>
+    <circle cx="10" cy="0" r="4" fill="#00ff88">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" begin="0.6s"/>
+    </circle>
+    <circle cx="30" cy="0" r="4" fill="#00ff88">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite" begin="0.9s"/>
+    </circle>
+  </g>
+  
+  <!-- Información del sistema en la parte inferior -->
+  <g fill="#666666" font-family="Courier, monospace" font-size="11">
+    <text x="50" y="570">Boot loader: U-Boot 2023.07</text>
+    <text x="400" y="570" text-anchor="middle">Kernel: Linux 6.1.0-embedded</text>
+    <text x="750" y="570" text-anchor="end">Build: 20240315-1200</text>
+  </g>
+</svg>

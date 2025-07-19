@@ -1,0 +1,23 @@
+# Archivos de compilación
+*.o
+*.out
+*.a
+*.so
+
+# Binarios
+/drm_display
+
+# Archivos temporales y de respaldo
+*~
+*.swp
+*.tmp
+
+# Archivos de imágenes generados
+images/*.png
+images/*_16_9.png
+
+# stb_image descargado automáticamente
+stb_image.h
+
+# Otros
+.DS_Store
